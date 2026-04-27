@@ -42,12 +42,12 @@ resource "aws_security_group" "ssh_sg" {
   description = "Permitir trafico entrante SSH"
   vpc_id      = aws_vpc.main_vpc.id
 
-  ingress {
-    description = "SSH desde internet"
+    ingress {
+    description = "SSH restringido a IP especifica"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] 
+    cidr_blocks = ["192.168.1.50/32"]
   }
 
   egress {
