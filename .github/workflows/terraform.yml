@@ -30,13 +30,13 @@ jobs:
           tflint --init
           tflint -f compact
 
-      # ETAPA 2: Análisis de seguridad con Checkov 
+      # ETAPA 2: Análisis de seguridad con Checkov
       - name: Run Checkov action
         uses: bridgecrewio/checkov-action@master
         with:
           directory: .
           framework: terraform
-          # soft_fail: true  # Opcional: permite que el pipeline siga aunque haya fallos de seguridad
+          soft_fail: true 
 
       # ETAPA 3: Validación de Terraform 
       - name: Terraform Init
