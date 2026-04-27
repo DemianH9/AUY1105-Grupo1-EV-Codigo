@@ -1,5 +1,7 @@
 # 1. Configuración del proveedor AWS solicitando la última versión mayor (5.x)
 terraform {
+  required_version = ">= 1.0.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -9,7 +11,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1" # Puedes cambiar la región si tu profesor les indicó otra
+  region = "us-east-1" 
 }
 
 # 2. Creación de la VPC con el bloque CIDR exigido
