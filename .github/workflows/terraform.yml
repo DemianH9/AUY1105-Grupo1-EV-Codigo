@@ -1,0 +1,46 @@
+name: "Terraform Quality & Security Analysis"
+
+# El flujo solo se activa en Pull Requests hacia la rama main 
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-analysis:
+    name: "Static Analysis, Security & Validation"
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 0: Preparar el entorno
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # ETAPA 1: Análisis estático con TFLint 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.50.0
+
+      - name: Run TFLint
+        run: |
+          tflint --init
+          tflint -f compact
+
+      # ETAPA 2: Análisis de seguridad con Checkov 
+      - name: Run Checkov action
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          # soft_fail: true  # Opcional: permite que el pipeline siga aunque haya fallos de seguridad
+
+      # ETAPA 3: Validación de Terraform 
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
