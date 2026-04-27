@@ -29,3 +29,10 @@ La infraestructura comprende los siguientes recursos:
 1. **Clonar el repositorio:**
    ```bash
    git clone [https://github.com/TuUsuario/AUY1105-Grupo1-EV-Codigo.git](https://github.com/TuUsuario/AUY1105-Grupo1-EV-Codigo.git)
+
+## 🚀 Pipeline de Integración Continua (CI)
+Este proyecto utiliza GitHub Actions para garantizar la calidad y seguridad de la infraestructura. El flujo de trabajo incluye:
+1. **TFLint:** Análisis estático para detectar errores en el código Terraform.
+2. **Checkov:** Análisis de seguridad para prevenir vulnerabilidades en AWS.
+3. **Terraform Validate:** Verificación de sintaxis interna.
+4. **Open Policy Agent (Conftest):** Validación estricta de políticas de seguridad (restringiendo puertos y tipos de instancias).
