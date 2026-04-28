@@ -1,3 +1,15 @@
+# 0. Configuración de versiones requeridas (Para que TFLint pase)
+terraform {
+  required_version = ">= 1.2.0"
+  
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # 1. Configuración del Proveedor AWS
 provider "aws" {
   region = "us-east-1"
