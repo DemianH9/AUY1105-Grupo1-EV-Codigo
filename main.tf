@@ -84,3 +84,28 @@ resource "aws_instance" "main_ec2" {
     Name = "AUY1105-evaluacion-ec2"
   }
 }
+
+# 1. Buscar la imagen (AMI) oficial de Ubuntu 22.04
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # ID de la cuenta oficial de Canonical (Ubuntu)
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+}
+
+# 6. Creación de la Instancia EC2 (t2.micro según la pauta)
+resource "aws_instance" "mi_servidor" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  
+  # Aquí se enlazan automáticamente los nombres creados arriba
+  subnet_id              = aws_subnet.mi_subred.id
+  vpc_security_group_ids = [aws_security_group.mi_sg_seguro.id]
+
+  tags = {
+    Name = "Instancia-Ubuntu-Evaluacion"
+  }
+}
