@@ -1,94 +1,55 @@
-# 1. Configuración del proveedor AWS solicitando la última versión mayor (5.x)
-terraform {
-  required_version = ">= 1.0.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0" 
-    }
-  }
-}
-
+# 1. Configuración del Proveedor AWS
 provider "aws" {
-  region = "us-east-1" 
+  region = "us-east-1"
 }
 
-# 2. Creación de la VPC con el bloque CIDR exigido
-resource "aws_vpc" "main_vpc" {
-  cidr_block           = "10.1.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
+# 2. Creación de la VPC (Red)
+resource "aws_vpc" "mi_red" {
+  cidr_block = "10.0.0.0/16"
+  
   tags = {
-    # Recuerda la nomenclatura obligatoria: <sigla-curso>-<nombre-aplicación>-<tipo-recurso>
-    Name = "AUY1105-evaluacion-vpc" 
+    Name = "VPC-Evaluacion"
   }
 }
 
-# 3. Creación de la Subred (Máscara /24 dentro de la VPC)
-resource "aws_subnet" "main_subnet" {
-  vpc_id     = aws_vpc.main_vpc.id
-  cidr_block = "10.1.1.0/24"
-
+# 3. Creación de la Subred (/24 según la pauta)
+resource "aws_subnet" "mi_subred" {
+  vpc_id     = aws_vpc.mi_red.id
+  cidr_block = "10.0.1.0/24"
+  
   tags = {
-    Name = "AUY1105-evaluacion-subnet"
+    Name = "Subred-Evaluacion"
   }
 }
 
-# 4. Security Group: Permitir solo SSH (Puerto 22)
-resource "aws_security_group" "ssh_sg" {
-  name        = "allow_ssh"
-  description = "Permitir trafico entrante SSH"
-  vpc_id      = aws_vpc.main_vpc.id
+# 4. Creación del Security Group Seguro (Para pasar el test de OPA)
+resource "aws_security_group" "mi_sg_seguro" {
+  name        = "sg_reglas_estrictas"
+  description = "Permitir SSH solo desde IP especifica"
+  vpc_id      = aws_vpc.mi_red.id
 
-    ingress {
-    description = "SSH restringido a IP especifica"
+  # Regla de Entrada: Solo SSH desde una IP específica (NO 0.0.0.0/0)
+  ingress {
+    description = "SSH restringido"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["192.168.1.50/32"]
+    cidr_blocks = ["192.168.1.50/32"] 
   }
 
+  # Regla de Salida: Permitir todo el tráfico hacia afuera
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "AUY1105-evaluacion-sg"
-  }
 }
 
-# Data source para obtener dinámicamente la última imagen (AMI) de Ubuntu 24.04 LTS
+# 5. Buscar la imagen oficial de Ubuntu
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-}
-
-# 5. Cómputo: Instancia EC2 (Ubuntu 24.04 LTS, t2.micro)
-resource "aws_instance" "main_ec2" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.main_subnet.id
-  vpc_security_group_ids = [aws_security_group.ssh_sg.id]
-
-  tags = {
-    Name = "AUY1105-evaluacion-ec2"
-  }
-}
-
-# 1. Buscar la imagen (AMI) oficial de Ubuntu 22.04
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # ID de la cuenta oficial de Canonical (Ubuntu)
 
   filter {
     name   = "name"
