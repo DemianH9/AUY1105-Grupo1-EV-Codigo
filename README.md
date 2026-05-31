@@ -35,4 +35,4 @@ Este proyecto utiliza GitHub Actions para garantizar la calidad y seguridad de l
 1. **TFLint:** Análisis estático para detectar errores en el código Terraform.
 2. **Checkov:** Análisis de seguridad para prevenir vulnerabilidades en AWS.
 3. **Terraform Validate:** Verificación de sintaxis interna.
-4. **Open Policy Agent (Conftest):** Validación estricta de políticas de seguridad (restringiendo puertos y tipos de instancias).
+4. **Open Policy Agent (Conftest):** Validación estricta de políticas de seguridad (restringiendo puertos y tipos de instancias). 
