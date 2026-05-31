@@ -9,4 +9,4 @@
 ## [v0.1.0] - 2024-01-01
 ### Added
 - Infraestructura inicial con VPC, Subnet, Security Group y EC2
-- GitHub Actions para validación con TFLint y OPA
+- GitHub Actions para validación con TFLint y OPA 
