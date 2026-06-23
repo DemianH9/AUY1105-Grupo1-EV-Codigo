@@ -6,7 +6,7 @@ Módulo Terraform para el despliegue de instancias EC2 en AWS con Ubuntu 22.04.
 
 ```hcl
 module "computo" {
-  source = "github.com/DemianH9/terraform-aws-ec2-auy1105-grupo-1?ref=v1.0.0"
+  source = "github.com/DemianH9/AUY1105-Grupo1-EV-Codigo/tree/main/modules/vpc"
 
   instance_name     = "mi-servidor"
   instance_type     = "t2.micro"
