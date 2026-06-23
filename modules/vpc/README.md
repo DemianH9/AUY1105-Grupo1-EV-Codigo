@@ -6,7 +6,7 @@ Módulo Terraform para gestión de red en AWS: VPC, Subnet y Security Group.
 
 ```hcl
 module "redes" {
-  source = "github.com/DemianH9/terraform-aws-vpc-auy1105-grupo-1?ref=v1.0.0"
+  source = "github.com/DemianH9/AUY1105-Grupo1-EV-Codigo/releases"
 
   vpc_name         = "mi-vpc"
   vpc_cidr         = "10.0.0.0/16"
