@@ -25,3 +25,11 @@ terraform.exe
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+# Artefactos locales de Terraform y conftest
+tfplan
+tfplan.json
+tfplan-*
+conftest
+conftest.exe
+conftest.tar.gz
+conftest.zip
