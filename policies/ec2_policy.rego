@@ -1,6 +1,5 @@
 package terraform.policies
 
-# Política 2: Restringir tipo de instancia EC2
 deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_instance"
