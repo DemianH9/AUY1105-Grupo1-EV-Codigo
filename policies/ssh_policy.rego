@@ -1,6 +1,5 @@
 package terraform.policies
 
-# Política 1: Denegar SSH Público
 deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "aws_security_group"
