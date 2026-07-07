@@ -1,60 +1,54 @@
 # AUY1105-Grupo1-EV-Codigo
 
-> **Repositorio principal — Evaluación Parcial N°2**
+> **Repositorio principal — Evaluación Final Transversal (EFT)**
 > Asignatura: AUY1105 — Infraestructura como Código II | DuocUC
-> Estudiante: Demian Hurtubia · GitHub: [DemianH9](https://github.com/DemianH9)
 
 ---
 
 ## Descripción
 
-Este repositorio actúa como **controlador central** de la infraestructura en AWS, refactorizado desde una arquitectura monolítica (Parcial 1) hacia una arquitectura **completamente modular** en Terraform.
+Este repositorio consolida el trabajo desarrollado en los Parciales 1, 2 y 3 de la asignatura, e implementa una solución de infraestructura en AWS mediante Terraform como tecnología de Infraestructura como Código (IaC), con un pipeline de CI/CD que valida calidad, seguridad y políticas antes de cada despliegue.
 
-En lugar de definir recursos directamente, el `main.tf` principal orquesta dos módulos independientes y versionados:
+En lugar de definir los recursos directamente, el `main.tf` principal orquesta dos módulos reutilizables mantenidos como subcarpetas versionadas dentro de este mismo repositorio:
 
-- **Módulo de Redes** → VPC, Subnet pública y Security Group
-- **Módulo de Cómputo** → Instancia EC2 con Ubuntu 22.04 (AMI dinámica de Canonical)
+- **Módulo de Redes** (`modules/vpc`) → VPC, Subnet pública y Security Group
+- **Módulo de Cómputo** (`modules/ec2`) → Instancia EC2 con Ubuntu 22.04 (AMI dinámica de Canonical)
 
-Los outputs del módulo de redes son pasados directamente como inputs al módulo de cómputo, garantizando el encadenamiento correcto entre ambos.
+Los outputs del módulo de redes se pasan directamente como inputs al módulo de cómputo, garantizando el encadenamiento correcto entre ambos.
+
+> **Nota sobre la estructura:** los módulos se mantienen como subcarpetas de un único repositorio (monorepo) en lugar de repositorios independientes por módulo. Esto simplifica la gestión para un proyecto académico, a cambio de no cumplir la convención `terraform-<PROVIDER>-<NAME>` que exige la publicación pública en el Terraform Registry. El versionado semántico (Releases `v1.0.0`/`v1.0.1`) se aplica igualmente sobre este repositorio.
 
 ---
 
 ## Arquitectura
 
 ```
-AUY1105-Grupo1-EV-Codigo/          ← Repositorio principal (orquestador)
-│
-├── main.tf                        ← Llama a los dos módulos con bloques module {}
+AUY1105-Grupo1-EV-Codigo/
+├── main.tf                        ← Orquesta los módulos con bloques module {}
 ├── .github/workflows/
 │   └── terraform.yml              ← CI/CD: TFLint + Checkov + terraform validate
 ├── policies/
-│   ├── ec2_policy.rego            ← Política OPA para instancias EC2
-│   └── ssh_policy.rego            ← Política OPA para reglas SSH
-├── modules/                       ← Carpeta de módulos consolidados (EP2)
-│   ├── vpc/                       ← Copia local del módulo de redes
-│   └── ec2/                       ← Copia local del módulo de cómputo
+│   ├── ec2_policy.rego            ← Política OPA: solo instancias t2.micro
+│   └── ssh_policy.rego            ← Política OPA: SSH nunca abierto a 0.0.0.0/0
+├── modules/
+│   ├── vpc/                       ← Módulo de red (README y CHANGELOG propios)
+│   └── ec2/                       ← Módulo de cómputo (README y CHANGELOG propios)
+├── .gitignore                     ← Ignora tfplan, tfplan.json y binarios de conftest
 ├── CHANGELOG.md
-├── .gitignore
 └── README.md
-
-Módulos externos versionados en GitHub:
-  ├── Terraform-AWS-VPC-AUY1105-grupo-1   (ref: v1.0.0)
-  └── Terraform-AWS-EC2-AUY1105-grupo-1   (ref: v1.0.0)
 ```
 
 ---
 
 ## Módulos utilizados
 
-### Módulo de Redes (VPC)
+### Módulo de Redes (VPC) — `modules/vpc`
 
-**Repositorio:** [Terraform-AWS-VPC-AUY1105-grupo-1](https://github.com/DemianH9/Terraform-AWS-VPC-AUY1105-grupo-1)
-**Versión:** `v1.0.0`
-**Propósito:** Crea la VPC, subnet pública y security group con SSH restringido.
+**Propósito:** Crea la VPC, subnet pública y security group con SSH restringido a una IP específica.
 
 ```hcl
 module "redes" {
-  source = "github.com/DemianH9/Terraform-AWS-VPC-AUY1105-grupo-1?ref=v1.0.0"
+  source = "./modules/vpc"
 
   vpc_name         = "VPC-Evaluacion"
   vpc_cidr         = "10.0.0.0/16"
@@ -82,15 +76,13 @@ module "redes" {
 
 ---
 
-### Módulo de Cómputo (EC2)
+### Módulo de Cómputo (EC2) — `modules/ec2`
 
-**Repositorio:** [Terraform-AWS-EC2-AUY1105-grupo-1](https://github.com/DemianH9/Terraform-AWS-EC2-AUY1105-grupo-1)
-**Versión:** `v1.0.0`
-**Propósito:** Despliega una instancia EC2 con Ubuntu 22.04 usando AMI dinámica de Canonical.
+**Propósito:** Despliega una instancia EC2 con Ubuntu 22.04, usando una AMI resuelta dinámicamente vía `data source` (siempre la última imagen oficial de Canonical, evitando IDs hardcodeados).
 
 ```hcl
 module "computo" {
-  source = "github.com/DemianH9/Terraform-AWS-EC2-AUY1105-grupo-1?ref=v1.0.0"
+  source = "./modules/ec2"
 
   instance_name     = "Instancia-Ubuntu-Evaluacion"
   instance_type     = "t2.micro"
@@ -123,6 +115,7 @@ module "computo" {
 |---|---|
 | Terraform | `>= 1.2.0` |
 | Provider `hashicorp/aws` | `~> 5.0` |
+| Conftest (OPA) | `>= 0.51.0` |
 | Región AWS | `us-east-1` |
 
 ---
@@ -134,19 +127,27 @@ module "computo" {
 git clone https://github.com/DemianH9/AUY1105-Grupo1-EV-Codigo.git
 cd AUY1105-Grupo1-EV-Codigo
 
-# 2. Inicializar — descarga módulos externos y proveedor AWS
+# 2. Configurar credenciales temporales de AWS Academy Learner Lab
+aws configure
+aws configure set aws_session_token TU_SESSION_TOKEN
+
+# 3. Inicializar
 terraform init
 
-# 3. Validar sintaxis y coherencia
+# 4. Validar sintaxis y coherencia
 terraform validate
 
-# 4. Revisar el plan de ejecución (4 recursos: VPC, Subnet, SG, EC2)
-terraform plan
+# 5. Generar el plan de ejecución (4 recursos: VPC, Subnet, SG, EC2)
+terraform plan -out=tfplan
 
-# 5. Desplegar infraestructura
-terraform apply -auto-approve
+# 6. Evaluar las políticas de seguridad (OPA/Rego) contra el plan
+terraform show -json tfplan > tfplan.json
+conftest test tfplan.json -p policies/ --namespace terraform.policies
 
-# 6. Destruir recursos al finalizar (buena práctica en Learner Lab)
+# 7. Desplegar infraestructura (solo si el paso anterior pasa)
+terraform apply tfplan
+
+# 8. Destruir recursos al finalizar (buena práctica en Learner Lab)
 terraform destroy -auto-approve
 ```
 
@@ -167,11 +168,26 @@ Los módulos se crean y destruyen respetando el **orden de dependencias** (EC2 d
 
 ---
 
+## Políticas de seguridad como código (OPA / Rego)
+
+La carpeta `policies/` define dos políticas evaluadas automáticamente contra el plan de Terraform mediante `conftest`, actuando como un sistema de permisos automatizado sobre los cambios propuestos:
+
+| Política | Regla |
+|---|---|
+| `ssh_policy.rego` | Deniega cualquier Security Group que abra el puerto 22 a `0.0.0.0/0` |
+| `ec2_policy.rego` | Deniega cualquier instancia EC2 que no sea de tipo `t2.micro` |
+
+Ambas políticas están escritas en sintaxis Rego v1 (`deny contains msg if { ... }`), compatible con las versiones actuales de OPA/conftest.
+
+```bash
+conftest test tfplan.json -p policies/ --namespace terraform.policies
+```
+
+---
+
 ## Automatización CI/CD — GitHub Actions
 
-El workflow **Terraform Quality & Security Analysis** se dispara automáticamente en cada Pull Request hacia `main`.
-
-**Archivo:** `.github/workflows/terraform.yml`
+El workflow **Terraform Quality & Security Analysis** (`.github/workflows/terraform.yml`) se dispara automáticamente en cada Pull Request hacia `main`.
 
 **Etapas del pipeline:**
 
@@ -181,45 +197,34 @@ El workflow **Terraform Quality & Security Analysis** se dispara automáticament
 | 2 | TFLint `v0.50.0` | Análisis estático de buenas prácticas |
 | 3 | Checkov | Análisis de seguridad de la configuración |
 
-Las políticas de seguridad se definen en la carpeta `policies/` usando **OPA (Open Policy Agent)**:
-
-- `ec2_policy.rego` — Validaciones sobre instancias EC2
-- `ssh_policy.rego` — Validaciones sobre reglas de acceso SSH
-
-**Resultado en evaluación (31-05-2026):** ✅ éxito en 41 segundos (workflow #12).
+> La evaluación de políticas OPA (`conftest`) se ejecuta hoy de forma manual antes de cada `apply` (ver sección anterior). Su integración como etapa automática dentro del pipeline de GitHub Actions está documentada como mejora en el `CHANGELOG.md`.
 
 ---
 
 ## Versionado semántico
 
-Este repositorio y sus módulos implementan **SemVer (MAJOR.MINOR.PATCH)**:
+Este repositorio implementa **SemVer (MAJOR.MINOR.PATCH)** mediante Releases de GitHub:
 
-| Repositorio | v0.1.0 | v1.0.0 |
-|---|---|---|
-| `AUY1105-Grupo1-EV-Codigo` | Estructura base del Parcial 1 | Refactorización modular (EP2) |
-| `Terraform-AWS-VPC-AUY1105-grupo-1` | Archivos base creados | Módulo VPC funcional y estable |
-| `Terraform-AWS-EC2-AUY1105-grupo-1` | Archivos base creados | Módulo EC2 funcional y estable |
+| Versión | Descripción |
+|---|---|
+| `v1.0.0` | Primera versión estable del módulo de cómputo (EC2) |
+| `v1.0.1` | Primera versión estable del módulo de red (VPC) |
 
-Los releases formales están publicados en GitHub con descripción detallada de cambios por versión.
+Ver [Releases](https://github.com/DemianH9/AUY1105-Grupo1-EV-Codigo/releases) para el detalle de cada versión.
 
 ---
 
-## Verificación en AWS (EP2 — 31 de Mayo, 2026)
+## Verificación en AWS (EFT — Julio 2026)
 
-Recursos creados y verificados en consola AWS:
-
-**VPC:**
-- Nombre: `VPC-Evaluacion`
-- ID: `vpc-02a50fe976f00f7a2`
-- CIDR: `10.0.0.0/16` — Estado: Available
+Última verificación exitosa de despliegue completo:
 
 **Instancia EC2:**
 - Nombre: `Instancia-Ubuntu-Evaluacion`
-- ID: `i-0ee1fb533958d5c69`
-- Tipo: `t2.micro` — Estado: running
-- IP Privada: `10.0.1.131`
+- ID: `i-060ae8d0fa85c6d81`
+- Tipo: `t2.micro` — Estado verificado: `running`, 2/2 checks passed
+- Security Group: `VPC-Evaluacion-sg`
 
-Posterior a la verificación se ejecutó `terraform destroy -auto-approve`, eliminando los 4 recursos en orden inverso de dependencias (EC2 primero, VPC al último).
+Posterior a la verificación se ejecutó `terraform destroy -auto-approve`, eliminando los 4 recursos en orden inverso de dependencias (EC2 primero, VPC al último). El historial completo de despliegues previos (incluyendo el de la Evaluación Parcial N°2) se encuentra documentado en `CHANGELOG.md`.
 
 ---
 
@@ -227,15 +232,3 @@ Posterior a la verificación se ejecutó `terraform destroy -auto-approve`, elim
 
 Ver [CHANGELOG.md](./CHANGELOG.md) para el historial completo de versiones.
 
----
-
-## Estructura del equipo
-
-| Campo | Detalle |
-|---|---|
-| Asignatura | AUY1105 — Infraestructura como Código II |
-| Evaluación | Parcial N°2 — Implementación de Módulos Terraform |
-| Estudiante | Demian Hurtubia |
-| GitHub | [DemianH9](https://github.com/DemianH9) |
-| Institución | DuocUC |
-| Fecha entrega | 31 de Mayo, 2026 |
