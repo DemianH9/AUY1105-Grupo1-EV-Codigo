@@ -1,8 +1,11 @@
 name: "Terraform Quality & Security Analysis"
 
-# El flujo solo se activa en Pull Requests hacia la rama main 
+# El flujo se activa en Pull Requests hacia main (analisis) y en push a main (despliegue)
 on:
   pull_request:
+    branches:
+      - main
+  push:
     branches:
       - main
 
@@ -19,7 +22,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # ETAPA 1: Análisis estático con TFLint 
+      # ETAPA 1: Analisis estatico con TFLint
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
@@ -30,17 +33,65 @@ jobs:
           tflint --init
           tflint -f compact
 
-      # ETAPA 2: Análisis de seguridad con Checkov
+      # ETAPA 2: Analisis de seguridad con Checkov
       - name: Run Checkov action
         uses: bridgecrewio/checkov-action@master
         with:
           directory: .
           framework: terraform
-          soft_fail: true 
+          soft_fail: true
 
-      # ETAPA 3: Validación de Terraform 
+      # ETAPA 3: Validacion de Terraform
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Validate
         run: terraform validate
+
+      # ETAPA 4: Sistema de permisos automatizado (OPA / conftest)
+      - name: Configure AWS credentials (Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Convert plan to JSON
+        run: terraform show -json tfplan > tfplan.json
+
+      - name: Setup Conftest
+        uses: instrumenta/conftest-action@master
+
+      - name: Evaluate OPA policies
+        run: conftest test tfplan.json -p policies/ --namespace terraform.policies
+
+  terraform-deploy:
+    name: "Deploy to AWS"
+    needs: terraform-analysis
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials (Learner Lab)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
